@@ -8,6 +8,14 @@ A coursework demonstration of building-floor hazard modeling and evacuation rout
 
 > **Safety notice:** This is a teaching simulation, not a life-safety system. It does not read real sensors, send phone notifications, control elevators or sprinklers, calculate certified crowd capacity, or provide authoritative evacuation advice. Follow the building's approved emergency plan and instructions from emergency services.
 
+## Student Team Members
+
+1. Hemantha R
+2. Mohammed Hasanayn R
+3. Dolsi Chanda
+4. Sahana Sangappa Waghamore
+5. Valligatla Rojitha
+   
 ## Project files
 
 | File | Purpose |
