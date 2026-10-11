@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080d18">
+    <title>SmartTower Twin | Evacuation Control</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --page: #080d18;
+            --panel: #101827;
+            --panel-soft: #131f31;
+            --line: #26364c;
+            --muted: #91a2b9;
+            --text: #edf4ff;
+            --cyan: #53d8e8;
+            --green: #53d69a;
+            --amber: #f6bd60;
+            --orange: #fb923c;
+            --red: #ff647c;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-width: 320px;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at 72% 0%, rgba(43, 88, 133, .2), transparent 45%),
+                var(--page);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+        }
+
+        button, input { font: inherit; }
+        button { color: inherit; }
+
+        .app-shell {
+            display: grid;
+            grid-template-columns: 340px minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100vh;
+            min-height: 640px;
+            overflow-y: auto;
+            padding: 26px 22px;
+            border-right: 1px solid var(--line);
+            background: rgba(12, 19, 32, .96);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border: 1px solid rgba(83, 216, 232, .45);
+            border-radius: 13px;
+            background: rgba(83, 216, 232, .1);
+            color: var(--cyan);
+            font-size: 22px;
+        }
+
+        .eyebrow {
+            margin: 0 0 5px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: .02em;
+        }
+
+        .connection {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 11px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            color: #c2d0e3;
+            font-size: 12px;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 12px rgba(83, 214, 154, .6);
+        }
+
+        .section-title {
+            margin: 0 0 11px;
+            color: #c5d3e6;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+
+        .stat-card, .control-card, .model-card {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: linear-gradient(145deg, rgba(21, 33, 51, .92), rgba(14, 23, 37, .92));
+        }
+
+        .stat-card { min-height: 82px; padding: 13px; }
+        .stat-label { display: block; color: var(--muted); font-size: 11px; }
+        .stat-value { display: block; margin-top: 8px; font-size: 21px; font-weight: 750; }
+        .stat-value.small { font-size: 14px; }
+        .cyan { color: var(--cyan); }
+        .green { color: var(--green); }
+        .amber { color: var(--amber); }
+        .red { color: var(--red); }
+
+        .control-card { padding: 15px; }
+        .control-card p {
+            margin: 0 0 13px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: 7px;
+            color: #d3dfef;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .floor-input {
+            width: 100%;
+            min-height: 43px;
+            padding: 10px 12px;
+            border: 1px solid #3b506a;
+            border-radius: 8px;
+            outline: none;
+            background: #09111e;
+            color: var(--text);
+        }
+
+        .floor-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(83, 216, 232, .12); }
+
+        .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .button {
+            min-height: 40px;
+            padding: 9px 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 750;
+            transition: background .15s ease, border-color .15s ease, transform .15s ease;
+        }
+
+        .button:hover { transform: translateY(-1px); }
+        .button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .button-primary { background: #b9344d; color: white; }
+        .button-primary:hover { background: #d3425d; }
+        .button-secondary { border-color: #35465c; background: #172337; color: #c6d3e4; }
+        .button-secondary:hover { background: #203149; }
+
+        .stair-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 13px; }
+        .stair-option { display: flex; align-items: center; gap: 7px; color: #c4d2e4; font-size: 11px; }
+        .stair-option input { accent-color: var(--red); }
+        .safety-note { margin-top: 12px !important; padding-top: 10px; border-top: 1px solid var(--line); font-size: 10px !important; }
+
+        .model-card { padding: 14px 15px; }
+        .model-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+        .model-list li { display: flex; gap: 9px; color: #bac8da; font-size: 11px; line-height: 1.45; }
+        .model-list strong { color: #edf4ff; font-weight: 700; }
+        .model-icon { width: 15px; flex: 0 0 15px; color: var(--cyan); text-align: center; }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 8px 13px; }
+        .legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: #60728a; }
+        .legend-dot.fire { background: var(--red); }
+        .legend-dot.smoke { background: var(--orange); }
+        .legend-dot.safe { background: var(--green); }
+
+        .main {
+            min-width: 0;
+            padding: 29px clamp(18px, 3vw, 42px) 36px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 18px;
+            margin-bottom: 23px;
+        }
+
+        .topbar h2 { margin: 0; font-size: clamp(22px, 3vw, 31px); letter-spacing: -.035em; }
+        .topbar .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+        .model-chip {
+            flex: 0 0 auto;
+            padding: 8px 11px;
+            border: 1px solid #29465b;
+            border-radius: 999px;
+            background: rgba(83, 216, 232, .07);
+            color: #a9eaf0;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .05em;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: minmax(210px, .85fr) minmax(320px, 1.35fr);
+            gap: 16px;
+            margin-bottom: 17px;
+        }
+
+        .overview-card {
+            min-height: 170px;
+            padding: 17px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(16, 24, 39, .78);
+        }
+
+        .overview-card h3 { margin: 0 0 5px; font-size: 13px; }
+        .overview-card .hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+        .exit-visual {
+            display: grid;
+            grid-template-columns: 1fr 45px 1fr;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .exit-node {
+            padding: 10px;
+            border: 1px solid #36536b;
+            border-radius: 9px;
+            background: #111e2e;
+        }
+
+        .exit-node span { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; }
+        .exit-node strong { display: block; margin-top: 4px; color: var(--cyan); font-size: 12px; }
+        .exit-line { height: 2px; background: linear-gradient(90deg, var(--cyan), #46607b, var(--cyan)); }
+
+        .logic-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 17px; }
+        .logic-step { padding: 10px; border-radius: 9px; background: #0c1523; }
+        .logic-step span { display: block; margin-bottom: 6px; color: var(--cyan); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+        .logic-step strong { display: block; font-size: 11px; }
+        .logic-step small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+
+        .response-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .9fr); gap: 14px; margin-bottom: 17px; }
+        .response-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: rgba(16, 24, 39, .82); }
+        .response-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .response-heading h3 { margin: 0; font-size: 13px; }
+        .phase-pill { padding: 5px 8px; border-radius: 999px; background: rgba(83, 216, 232, .1); color: var(--cyan); font-size: 9px; font-weight: 800; white-space: nowrap; }
+        .phase-pill.active { background: rgba(255, 100, 124, .14); color: var(--red); }
+        .phase-pill.sprinklers { background: rgba(83, 216, 232, .16); color: #83e5f0; }
+        .phase-pill.cleared { background: rgba(83, 214, 154, .14); color: var(--green); }
+        .response-copy { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+        .notification-list { display: grid; gap: 8px; max-height: 190px; overflow: auto; }
+        .notification { padding: 10px 11px; border-left: 3px solid var(--cyan); border-radius: 7px; background: #0c1624; }
+        .notification.urgent { border-left-color: var(--red); }
+        .notification.warning { border-left-color: var(--orange); }
+        .notification strong { display: block; margin-bottom: 4px; color: #e6eef9; font-size: 10px; }
+        .notification span { color: #9bacbf; font-size: 10px; line-height: 1.45; }
+        .notification-empty { color: var(--muted); font-size: 11px; line-height: 1.5; }
+        .phase-track { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 12px; }
+        .phase-step { padding: 8px; border: 1px solid #25364b; border-radius: 8px; color: #7f91a8; font-size: 9px; text-align: center; }
+        .phase-step.active { border-color: rgba(255, 100, 124, .55); color: #ff9aaa; }
+        .phase-step.done { border-color: rgba(83, 214, 154, .45); color: var(--green); }
+        .demo-disclaimer { margin: 12px 0 0; color: #f5c977; font-size: 10px; line-height: 1.5; }
+
+        .building-panel {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(13, 21, 34, .88);
+        }
+
+        .building-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .building-header h3 { margin: 0; font-size: 14px; }
+        .building-header p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+        .floor-count { color: #a9b8cb; font-size: 10px; white-space: nowrap; }
+
+        .floor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: min(56vh, 590px);
+            min-height: 280px;
+            overflow: auto;
+            padding: 12px;
+            scrollbar-color: #354c68 #0a111c;
+            scrollbar-width: thin;
+        }
+
+        .floor-row {
+            display: grid;
+            grid-template-columns: 82px minmax(0, 1fr) minmax(112px, auto);
+            align-items: center;
+            gap: 12px;
+            min-height: 43px;
+            padding: 8px 11px;
+            border: 1px solid #24364b;
+            border-radius: 8px;
+            background: rgba(19, 31, 49, .74);
+            cursor: pointer;
+            transition: border-color .15s ease, background .15s ease;
+        }
+
+        .floor-row:hover { border-color: #4a7892; background: #17283d; }
+        .floor-row.selected { outline: 1px solid rgba(255, 100, 124, .65); }
+        .floor-row.state-fire { border-color: rgba(255, 100, 124, .75); background: rgba(148, 35, 57, .26); }
+        .floor-row.state-smoke { border-color: rgba(251, 146, 60, .65); background: rgba(124, 66, 24, .22); }
+        .floor-number { color: #d6e4f5; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; font-weight: 800; }
+        .floor-route { overflow: hidden; color: #96a9c1; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+        .floor-status { color: var(--green); font-size: 10px; font-weight: 800; text-align: right; white-space: nowrap; }
+        .floor-status.fire { color: var(--red); }
+        .floor-status.smoke { color: var(--orange); }
+        .floor-status.blocked { color: var(--amber); }
+        .floor-status.standby { color: #a8b6c9; }
+
+        .footer-note { margin: 12px 2px 0; color: #71839a; font-size: 10px; line-height: 1.5; }
+
+        @media (max-width: 960px) {
+            .app-shell { grid-template-columns: 290px minmax(0, 1fr); }
+            .sidebar { padding: 22px 16px; }
+            .overview-grid { grid-template-columns: 1fr; }
+            .response-grid { grid-template-columns: 1fr; }
+            .overview-card { min-height: 0; }
+        }
+
+        @media (max-width: 680px) {
+            .app-shell { display: block; }
+            .sidebar { position: static; height: auto; min-height: 0; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+            .main { padding: 23px 14px; }
+            .topbar { align-items: flex-start; flex-direction: column; }
+            .floor-row { grid-template-columns: 68px minmax(0, 1fr); gap: 7px 10px; }
+            .floor-status { grid-column: 2; text-align: left; }
+            .logic-steps { grid-template-columns: 1fr; }
+            .floor-list { max-height: 62vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <header class="brand">
+                <div class="brand-mark" aria-hidden="true">⌂</div>
+                <div>
+                    <p class="eyebrow">Building safety system</p>
+                    <h1>SmartTower Twin</h1>
+                </div>
+            </header>
+
+            <div class="connection" role="status">
+                <span class="connection-dot" aria-hidden="true"></span>
+                <span id="connection-status">Interactive model ready</span>
+            </div>
+
+            <section aria-labelledby="live-stats-title">
+                <h2 class="section-title" id="live-stats-title">Live overview</h2>
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Building floors</span>
+                        <strong class="stat-value cyan">101</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Clear stairwells</span>
+                        <strong class="stat-value cyan small" id="open-stair-count">2 / 4 OPEN</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Active fire nodes</span>
+                        <strong class="stat-value red" id="fire-count">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Smoke-affected</span>
+                        <strong class="stat-value amber" id="smoke-count">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">System state</span>
+                        <strong class="stat-value small cyan" id="system-state">STANDBY</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Floors without exit</span>
+                        <strong class="stat-value green" id="blocked-count">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Elevator status</span>
+                        <strong class="stat-value small green" id="elevator-status">READY</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="control-card" aria-labelledby="incident-title">
+                <h2 class="section-title" id="incident-title">Incident controls</h2>
+                <p>Enter floors from 0 to 100, separated by commas, or click floors in the building view.</p>
+                <label class="field-label" for="fire-floor-input">Fire sensor floor(s)</label>
+                <input class="floor-input" type="text" id="fire-floor-input" inputmode="numeric" placeholder="Example: 61, 72" autocomplete="off">
+                <span class="field-label" style="margin-top: 13px;">Staircases reported unsafe at the incident</span>
+                <div class="stair-selector" role="group" aria-label="Stairwells affected by the incident">
+                    <label class="stair-option"><input type="checkbox" name="blocked-stair" value="A" checked> Stairwell A</label>
+                    <label class="stair-option"><input type="checkbox" name="blocked-stair" value="B" checked> Stairwell B</label>
+                    <label class="stair-option"><input type="checkbox" name="blocked-stair" value="C"> Stairwell C</label>
+                    <label class="stair-option"><input type="checkbox" name="blocked-stair" value="D"> Stairwell D</label>
+                </div>
+                <div class="button-row">
+                    <button class="button button-primary" id="run-button" type="button">Start incident drill</button>
+                    <button class="button button-secondary" id="reset-button" type="button">Reset model</button>
+                </div>
+                <p class="safety-note">Elevators shut down during this drill. The stairwell selections are demonstration inputs, not live sensor readings.</p>
+            </section>
+
+            <section class="model-card" aria-labelledby="model-title">
+                <h2 class="section-title" id="model-title">Digital twin rules</h2>
+                <ul class="model-list">
+                    <li><span class="model-icon">↕</span><span><strong>Graph:</strong> adjacent floors connect through four bidirectional stairwells.</span></li>
+                    <li><span class="model-icon">!</span><span><strong>Local alert:</strong> incident and adjacent smoke floors receive priority instructions.</span></li>
+                    <li><span class="model-icon">↗</span><span><strong>Reroute:</strong> avoid selected unsafe stairwells; use the remaining clear stairs.</span></li>
+                    <li><span class="model-icon">⇧</span><span><strong>Split evacuation:</strong> if the incident cuts the lower route, upper-zone occupants route to roof refuge.</span></li>
+                    <li><span class="model-icon">▣</span><span><strong>Sprinklers:</strong> drill timer starts suppression, then marks the fire as controlled.</span></li>
+                </ul>
+            </section>
+
+            <section aria-labelledby="legend-title">
+                <h2 class="section-title" id="legend-title">Floor legend</h2>
+                <div class="legend">
+                    <span class="legend-item"><i class="legend-dot"></i>Safe</span>
+                    <span class="legend-item"><i class="legend-dot fire"></i>Fire</span>
+                    <span class="legend-item"><i class="legend-dot smoke"></i>Smoke</span>
+                    <span class="legend-item"><i class="legend-dot safe"></i>Safe route</span>
+                </div>
+            </section>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Real-time evacuation routing</p>
+                    <h2>Building operations</h2>
+                    <p class="subtitle">A visual control surface for the SmartTower digital-twin routing model.</p>
+                </div>
+                <span class="model-chip">MODEL · FLOORS 0–100</span>
+            </header>
+
+            <section class="overview-grid" aria-label="Building model overview">
+                <article class="overview-card">
+                    <h3>Stair-only evacuation · lift offline</h3>
+                    <p class="hint">Route by safe stairwells and floor zone. Never use the elevator during the drill.</p>
+                    <div class="exit-visual" aria-label="Roof and ground exits connected by the stairwell graph">
+                        <div class="exit-node"><span>Upper refuge</span><strong>Roof · Floor 100</strong></div>
+                        <div class="exit-line" aria-hidden="true"></div>
+                        <div class="exit-node"><span>Lower exit</span><strong>Ground · Floor 0</strong></div>
+                    </div>
+                </article>
+                <article class="overview-card">
+                    <h3>Staged response</h3>
+                    <p class="hint">Prioritize the fire and smoke zone; other floors avoid stairwell congestion and follow directed alerts.</p>
+                    <div class="logic-steps">
+                        <div class="logic-step"><span>01 · ALERT</span><strong>Local floors first</strong><small>Fire floor and adjacent smoke zone get priority.</small></div>
+                        <div class="logic-step"><span>02 · ROUTE</span><strong>Keep flows separate</strong><small>Use verified clear stairs; upper zones may go to roof refuge.</small></div>
+                        <div class="logic-step"><span>03 · SUPPRESS</span><strong>Sprinklers engage</strong><small>Drill timeline demonstrates fire control and all-clear.</small></div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="response-grid" aria-label="Evacuation response and resident alerts">
+                <article class="response-card">
+                    <div class="response-heading">
+                        <h3>Incident response timeline</h3>
+                        <span class="phase-pill" id="phase-pill">STANDBY</span>
+                    </div>
+                    <p class="response-copy" id="phase-message">Start a drill to see staged alerts, stairwell routing, elevator shutdown, and sprinkler response.</p>
+                    <div class="phase-track" aria-label="Response phases">
+                        <div class="phase-step" id="phase-alarm">Alarm &amp; route</div>
+                        <div class="phase-step" id="phase-sprinklers">Sprinklers</div>
+                        <div class="phase-step" id="phase-clear">Controlled</div>
+                    </div>
+                    <p class="demo-disclaimer">Training simulation only. Real evacuation, shelter, roof refuge, elevators, and sprinkler actions must follow the building's approved fire plan and emergency services.</p>
+                </article>
+                <article class="response-card">
+                    <div class="response-heading">
+                        <h3>Resident mobile alerts</h3>
+                        <span class="phase-pill">SIMULATED</span>
+                    </div>
+                    <div class="notification-list" id="notification-list" aria-live="polite">
+                        <p class="notification-empty">No incident alerts. Start a drill to generate example floor-specific notifications.</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="building-panel" aria-labelledby="building-title">
+                <header class="building-header">
+                    <div>
+                        <h3 id="building-title">Vertical floor matrix</h3>
+                        <p>Click a floor to add or remove it from the incident set.</p>
+                    </div>
+                    <span class="floor-count">101 NODES · 4 STAIRWELLS</span>
+                </header>
+                <div class="floor-list" id="floor-list" aria-live="polite"></div>
+            </section>
+            <p class="footer-note">The browser runs a conceptual drill model; it does not send real phone notifications or operate building equipment. Use verified site plans and qualified fire-safety guidance for real incidents.</p>
+        </main>
+    </div>
+
+    <script>
+        "use strict";
+
+        const TOTAL_FLOORS = 100;
+        const BASE_COST = 5;
+        const graphStairwells = ["Stairwell D", "Stairwell C", "Stairwell B", "Stairwell A"];
+        const fireInput = document.getElementById("fire-floor-input");
+        const floorList = document.getElementById("floor-list");
+        let activeFires = new Set();
+        let incidentPhase = "standby";
+        let sprinklerTimer = null;
+        let allClearTimer = null;
+
+        function getUnsafeStairwells() {
+            return [...document.querySelectorAll('input[name="blocked-stair"]:checked')]
+                .map(input => input.value);
+        }
+
+        function setPhase(phase, message) {
+            incidentPhase = phase;
+            const badge = document.getElementById("phase-pill");
+            badge.className = `phase-pill${phase === "alarm" ? " active" : phase === "sprinklers" ? " sprinklers" : phase === "cleared" ? " cleared" : ""}`;
+            badge.textContent = phase === "alarm" ? "ALARM ACTIVE"
+                : phase === "sprinklers" ? "SPRINKLERS ON"
+                    : phase === "cleared" ? "CONTROLLED" : "STANDBY";
+            document.getElementById("phase-message").textContent = message;
+            document.getElementById("phase-alarm").className = `phase-step${phase === "alarm" ? " active" : ["sprinklers", "cleared"].includes(phase) ? " done" : ""}`;
+            document.getElementById("phase-sprinklers").className = `phase-step${phase === "sprinklers" ? " active" : phase === "cleared" ? " done" : ""}`;
+            document.getElementById("phase-clear").className = `phase-step${phase === "cleared" ? " done" : ""}`;
+            if (phase === "cleared") {
+                document.getElementById("system-state").textContent = "CONTROLLED";
+                document.getElementById("system-state").className = "stat-value small amber";
+                document.getElementById("elevator-status").textContent = "AWAIT CLEARANCE";
+                document.getElementById("elevator-status").className = "stat-value small amber";
+            }
+        }
+
+        function stopResponseTimers() {
+            window.clearTimeout(sprinklerTimer);
+            window.clearTimeout(allClearTimer);
+            sprinklerTimer = null;
+            allClearTimer = null;
+        }
+
+        function createFloorRows() {
+            for (let floor = TOTAL_FLOORS; floor >= 0; floor -= 1) {
+                const row = document.createElement("button");
+                row.type = "button";
+                row.className = "floor-row";
+                row.id = `floor-row-${floor}`;
+                row.setAttribute("aria-pressed", "false");
+                row.setAttribute("aria-label", `Floor ${floor}, safe`);
+
+                const number = document.createElement("span");
+                number.className = "floor-number";
+                number.textContent = `FLOOR ${String(floor).padStart(3, "0")}`;
+
+                const route = document.createElement("span");
+                route.className = "floor-route";
+                route.id = `route-${floor}`;
+                route.textContent = "Awaiting incident assessment";
+
+                const status = document.createElement("span");
+                status.className = "floor-status";
+                status.id = `status-${floor}`;
+                status.textContent = "SAFE · READY";
+
+                row.append(number, route, status);
+                row.addEventListener("click", () => {
+                    if (activeFires.has(floor)) {
+                        activeFires.delete(floor);
+                    } else {
+                        activeFires.add(floor);
+                    }
+                    fireInput.value = [...activeFires].sort((a, b) => a - b).join(", ");
+                    runSimulation();
+                });
+                floorList.appendChild(row);
+            }
+        }
+
+        function parseFireFloors() {
+            const rawFloors = fireInput.value.split(",").map(value => value.trim()).filter(Boolean);
+            const invalidFloor = rawFloors.find(value => !/^\d+$/.test(value) || Number(value) > TOTAL_FLOORS);
+            if (invalidFloor !== undefined) {
+                throw new Error(`"${invalidFloor}" is not a valid floor. Enter whole numbers from 0 to 100.`);
+            }
+            return [...new Set(rawFloors.map(Number))];
+        }
+
+        function buildBuilding(fireFloors) {
+            const unsafeStairwells = new Set(getUnsafeStairwells());
+            const states = Array(TOTAL_FLOORS + 1).fill("SAFE");
+            for (const floor of fireFloors) {
+                states[floor] = "FIRE";
+            }
+            for (const floor of fireFloors) {
+                if (floor > 0 && states[floor - 1] !== "FIRE") states[floor - 1] = "SMOKE";
+                if (floor < TOTAL_FLOORS && states[floor + 1] !== "FIRE") states[floor + 1] = "SMOKE";
+            }
+
+            const graph = Array.from({ length: TOTAL_FLOORS + 1 }, () => []);
+            for (let floor = 0; floor <= TOTAL_FLOORS; floor += 1) {
+                for (const nextFloor of [floor + 1, floor - 1]) {
+                    if (nextFloor < 0 || nextFloor > TOTAL_FLOORS) continue;
+                    for (const stairwell of graphStairwells) {
+                        const touchesHazard = states[floor] !== "SAFE" || states[nextFloor] !== "SAFE";
+                        const entersFireFloor = states[nextFloor] === "FIRE";
+                        const blocked = entersFireFloor || (touchesHazard && unsafeStairwells.has(stairwell.slice(-1)));
+                        graph[floor].push({
+                            floor: nextFloor,
+                            stairwell,
+                            cost: blocked ? Infinity : BASE_COST
+                        });
+                    }
+                }
+            }
+            return { graph, states };
+        }
+
+        function dijkstra(graph, states, exitFloor) {
+            const distance = Array(TOTAL_FLOORS + 1).fill(Infinity);
+            const nextFloor = Array(TOTAL_FLOORS + 1).fill(null);
+            const stairwell = Array(TOTAL_FLOORS + 1).fill(null);
+            const queue = [{ floor: exitFloor, cost: 0 }];
+
+            if (states[exitFloor] === "FIRE") return { distance, nextFloor, stairwell };
+            distance[exitFloor] = 0;
+
+            while (queue.length > 0) {
+                queue.sort((a, b) => b.cost - a.cost);
+                const current = queue.pop();
+                if (current.cost > distance[current.floor]) continue;
+
+                for (const edge of graph[current.floor]) {
+                    if (!Number.isFinite(edge.cost)) continue;
+                    const candidate = current.cost + edge.cost;
+                    if (candidate < distance[edge.floor]) {
+                        distance[edge.floor] = candidate;
+                        nextFloor[edge.floor] = current.floor;
+                        stairwell[edge.floor] = edge.stairwell;
+                        queue.push({ floor: edge.floor, cost: candidate });
+                    }
+                }
+            }
+            return { distance, nextFloor, stairwell };
+        }
+
+        function getRoute(floor, states, graph, groundRoutes, roofRoutes) {
+            const routeCandidates = [];
+            if (states[floor] === "FIRE") {
+                for (const edge of graph[floor]) {
+                    if (!Number.isFinite(edge.cost) || states[edge.floor] === "FIRE") continue;
+                    for (const [exit, routes] of [["ground", groundRoutes], ["roof", roofRoutes]]) {
+                        if (Number.isFinite(routes.distance[edge.floor])) {
+                            routeCandidates.push({
+                                exit,
+                                cost: edge.cost + routes.distance[edge.floor],
+                                firstFloor: edge.floor,
+                                firstStairwell: edge.stairwell
+                            });
+                        }
+                    }
+                }
+                routeCandidates.sort((a, b) => a.cost - b.cost);
+                const best = routeCandidates[0];
+                return best
+                    ? { kind: "fire", instruction: `Evacuate via ${best.firstStairwell} to Floor ${best.firstFloor}; continue to ${best.exit} · route cost ${best.cost}` }
+                    : { kind: "fire-blocked", instruction: "" };
+            }
+
+            const useGround = groundRoutes.distance[floor] <= roofRoutes.distance[floor];
+            const routes = useGround ? groundRoutes : roofRoutes;
+            if (!Number.isFinite(routes.distance[floor])) return { kind: "no-route", instruction: "" };
+            const exitName = useGround ? "ground" : "roof refuge";
+            const next = routes.nextFloor[floor];
+            const instruction = next === null
+                ? `At ${exitName} · route cost ${routes.distance[floor]}`
+                : `Take ${routes.stairwell[floor]} to Floor ${next}; continue to ${exitName} · route cost ${routes.distance[floor]}`;
+            return { kind: states[floor] === "SMOKE" ? "smoke" : "safe", exit: useGround ? "ground" : "roof", instruction };
+        }
+
+        function updateStatistics(states, routes) {
+            const fireCount = states.filter(state => state === "FIRE").length;
+            const smokeCount = states.filter(state => state === "SMOKE").length;
+            const blockedCount = routes.filter(route => route.kind === "no-route" || route.kind === "fire-blocked").length;
+            document.getElementById("fire-count").textContent = fireCount;
+            document.getElementById("smoke-count").textContent = smokeCount;
+            document.getElementById("blocked-count").textContent = blockedCount;
+            document.getElementById("open-stair-count").textContent = `${4 - getUnsafeStairwells().length} / 4 OPEN`;
+            const elevatorStatus = document.getElementById("elevator-status");
+            elevatorStatus.textContent = activeFires.size ? "SHUT DOWN" : "READY";
+            elevatorStatus.className = `stat-value small ${activeFires.size ? "red" : "green"}`;
+
+            const stateElement = document.getElementById("system-state");
+            stateElement.textContent = fireCount === 0
+                ? incidentPhase === "cleared" ? "CONTROLLED" : "STANDBY"
+                : blockedCount > 0 ? "ROUTE CHECK" : "EVACUATION";
+            stateElement.className = `stat-value small ${fireCount === 0 ? incidentPhase === "cleared" ? "amber" : "cyan" : blockedCount > 0 ? "amber" : "red"}`;
+        }
+
+        function renderBuilding(states, routes, groundRoutes, roofRoutes) {
+            const lowestFire = activeFires.size ? Math.min(...activeFires) : -1;
+            for (let floor = 0; floor <= TOTAL_FLOORS; floor += 1) {
+                const row = document.getElementById(`floor-row-${floor}`);
+                const routeElement = document.getElementById(`route-${floor}`);
+                const statusElement = document.getElementById(`status-${floor}`);
+                const state = states[floor];
+                const route = routes[floor];
+                const isInPriorityZone = state === "FIRE" || state === "SMOKE";
+                const upperZoneIsolated = Number.isFinite(roofRoutes.distance[floor]) && !Number.isFinite(groundRoutes.distance[floor]);
+                const lowerZoneIsolated = Number.isFinite(groundRoutes.distance[floor]) && !Number.isFinite(roofRoutes.distance[floor]);
+
+                row.className = `floor-row${activeFires.has(floor) ? " selected" : ""}${state === "FIRE" ? " state-fire" : state === "SMOKE" ? " state-smoke" : ""}`;
+                row.setAttribute("aria-pressed", String(activeFires.has(floor)));
+                row.setAttribute("aria-label", `Floor ${floor}, ${state.toLowerCase()}${route.instruction ? `, ${route.instruction}` : ""}`);
+                statusElement.className = `floor-status${route.kind.startsWith("fire") ? " fire" : route.kind === "smoke" ? " smoke" : route.kind === "no-route" ? " blocked" : !isInPriorityZone && activeFires.size ? " standby" : ""}`;
+
+                if (route.kind === "fire") {
+                    statusElement.textContent = "FIRE · EVACUATE";
+                    routeElement.textContent = route.instruction || "No selected clear stair is modeled from this floor";
+                } else if (route.kind === "fire-blocked" || route.kind === "no-route") {
+                    statusElement.textContent = "ROUTE BLOCKED";
+                    routeElement.textContent = "No modeled safe exit; use protected refuge and alert responders";
+                } else if (activeFires.size === 0) {
+                    statusElement.textContent = "SAFE · READY";
+                    routeElement.textContent = "Awaiting incident assessment";
+                } else if (!isInPriorityZone && upperZoneIsolated) {
+                    statusElement.textContent = "UPPER ZONE · ROOF";
+                    routeElement.textContent = `Lower route isolated by incident at Floor ${lowestFire}; ${route.instruction}`;
+                } else if (!isInPriorityZone && lowerZoneIsolated) {
+                    statusElement.textContent = "LOWER ZONE · STAGED";
+                    routeElement.textContent = `No mass movement in this drill; keep stairs clear. If directed: ${route.instruction}`;
+                } else if (!isInPriorityZone) {
+                    statusElement.textContent = "STAGED · MONITOR";
+                    routeElement.textContent = `Keep stairwells clear; follow floor alert. If directed: ${route.instruction}`;
+                } else {
+                    statusElement.textContent = state === "SMOKE" ? "SMOKE · EVACUATE" : "EVACUATE NOW";
+                    routeElement.textContent = route.instruction || "No clear stair route; go to the nearest protected refuge and signal responders";
+                }
+            }
+            updateStatistics(states, routes);
+        }
+
+        function setMessage(message, isError = false) {
+            document.getElementById("connection-status").textContent = message;
+            document.querySelector(".connection-dot").style.background = isError ? "var(--red)" : "var(--green)";
+            document.querySelector(".connection-dot").style.boxShadow = isError
+                ? "0 0 12px rgba(255, 100, 124, .6)"
+                : "0 0 12px rgba(83, 214, 154, .6)";
+        }
+
+        function addNotification(title, message, kind = "") {
+            const notification = document.createElement("div");
+            notification.className = `notification${kind ? ` ${kind}` : ""}`;
+            const heading = document.createElement("strong");
+            heading.textContent = title;
+            const body = document.createElement("span");
+            body.textContent = message;
+            notification.append(heading, body);
+            document.getElementById("notification-list").appendChild(notification);
+        }
+
+        function floorRange(floors) {
+            if (!floors.length) return "none";
+            const ranges = [];
+            let start = floors[0];
+            let end = floors[0];
+            for (const floor of floors.slice(1)) {
+                if (floor === end + 1) {
+                    end = floor;
+                    continue;
+                }
+                ranges.push(start === end ? `Floor ${start}` : `Floors ${start}–${end}`);
+                start = floor;
+                end = floor;
+            }
+            ranges.push(start === end ? `Floor ${start}` : `Floors ${start}–${end}`);
+            return ranges.join(", ");
+        }
+
+        function renderNotifications(states, routes, groundRoutes, roofRoutes) {
+            const list = document.getElementById("notification-list");
+            list.replaceChildren();
+            const fireFloors = [...activeFires].sort((a, b) => a - b);
+            if (!fireFloors.length) {
+                list.innerHTML = '<p class="notification-empty">No active incident alerts.</p>';
+                return;
+            }
+
+            addNotification(
+                `Fire alarm · ${fireFloors.map(floor => `Floor ${floor}`).join(", ")}`,
+                "Elevators are out of service in this drill. Follow the posted plan and use a verified clear stairwell. Never enter smoke or fire.",
+                "urgent"
+            );
+
+            const smokeFloors = states
+                .map((state, floor) => state === "SMOKE" ? floor : -1)
+                .filter(floor => floor >= 0);
+            for (const floor of smokeFloors) {
+                const route = routes[floor];
+                addNotification(
+                    `Smoke alert · Floor ${floor}`,
+                    route.kind === "smoke"
+                        ? `Priority evacuation in this drill: ${route.instruction}. Avoid marked unsafe stairwells.`
+                        : "No clear route is available in this model. Move away from smoke to a protected area and signal emergency responders per the approved plan.",
+                    route.kind === "smoke" ? "warning" : "urgent"
+                );
+            }
+
+            const upperFloors = states
+                .map((state, floor) => state === "SAFE" && Number.isFinite(roofRoutes.distance[floor]) && !Number.isFinite(groundRoutes.distance[floor]) ? floor : -1)
+                .filter(floor => floor >= 0);
+            if (upperFloors.length) {
+                addNotification(
+                    `Upper zone · ${floorRange(upperFloors)}`,
+                    `The model has no route below the incident. Follow building-authority instructions to a designated roof refuge using verified clear stairs; do not enter a smoke/fire zone.`
+                );
+            }
+
+            const lowerFloors = states
+                .map((state, floor) => state === "SAFE" && Number.isFinite(groundRoutes.distance[floor]) && !Number.isFinite(roofRoutes.distance[floor]) ? floor : -1)
+                .filter(floor => floor >= 0);
+            if (lowerFloors.length) {
+                addNotification(
+                    `Lower zone · ${floorRange(lowerFloors)}`,
+                    "Staged movement in this drill: keep stairwells clear and await floor-specific instructions; do not start a building-wide descent unless directed."
+                );
+            }
+
+            const blockedFloors = routes
+                .map((route, floor) => route.kind === "no-route" || route.kind === "fire-blocked" ? floor : -1)
+                .filter(floor => floor >= 0 && states[floor] !== "FIRE");
+            if (blockedFloors.length) {
+                addNotification(
+                    `No modeled exit · ${floorRange(blockedFloors)}`,
+                    "Do not use a blocked stair or travel toward the incident. Seek the designated protected refuge and contact emergency responders using the approved site plan.",
+                    "urgent"
+                );
+            }
+        }
+
+        function startResponseTimeline() {
+            stopResponseTimers();
+            setPhase("alarm", "Alarm active. The fire and adjacent smoke zone have priority; elevators are shut down in this drill. Sprinkler activation is simulated in 8 seconds.");
+            sprinklerTimer = window.setTimeout(() => {
+                setPhase("sprinklers", "Sprinklers activated in the drill. Keep following the evacuation instructions; the fire is not marked controlled yet.");
+                setMessage("Sprinkler response simulated");
+                allClearTimer = window.setTimeout(() => {
+                    activeFires.clear();
+                    fireInput.value = "";
+                    runSimulation({ startTimeline: false, controlled: true });
+                    setPhase("cleared", "Drill reports the fire controlled. This is not confirmation that a real building is safe; wait for authorized all-clear.");
+                    document.getElementById("notification-list").replaceChildren();
+                    addNotification("Drill update · suppression complete", "The visual model reports fire controlled. Elevators remain out of service until authorized clearance and inspection.");
+                    setMessage("Drill complete · awaiting authorized all-clear");
+                }, 8000);
+            }, 8000);
+        }
+
+        function runSimulation(options = {}) {
+            try {
+                const fireFloors = parseFireFloors();
+                if (fireFloors.length === 0 && !options.controlled) {
+                    resetModel();
+                    return;
+                }
+                activeFires = new Set(fireFloors);
+                fireInput.value = [...activeFires].sort((a, b) => a - b).join(", ");
+                const { graph, states } = buildBuilding(fireFloors);
+                const groundRoutes = dijkstra(graph, states, 0);
+                const roofRoutes = dijkstra(graph, states, TOTAL_FLOORS);
+                const routes = Array.from({ length: TOTAL_FLOORS + 1 }, (_, floor) =>
+                    getRoute(floor, states, graph, groundRoutes, roofRoutes));
+                renderBuilding(states, routes, groundRoutes, roofRoutes);
+                renderNotifications(states, routes, groundRoutes, roofRoutes);
+                if (options.controlled) {
+                    document.getElementById("system-state").textContent = "CONTROLLED";
+                    document.getElementById("system-state").className = "stat-value small amber";
+                    document.getElementById("elevator-status").textContent = "AWAIT CLEARANCE";
+                    document.getElementById("elevator-status").className = "stat-value small amber";
+                    return;
+                }
+                if (options.startTimeline !== false) startResponseTimeline();
+                setMessage(`Drill active · ${fireFloors.length} incident floor${fireFloors.length === 1 ? "" : "s"} · elevators shut down`);
+
+                if (fireFloors.length) {
+                    const focusFloor = Math.min(TOTAL_FLOORS, Math.min(...fireFloors) + 2);
+                    focusFloorInList(focusFloor);
+                }
+            } catch (error) {
+                setMessage(error.message, true);
+                fireInput.setAttribute("aria-invalid", "true");
+                return;
+            }
+            fireInput.removeAttribute("aria-invalid");
+        }
+
+        function resetModel() {
+            stopResponseTimers();
+            activeFires = new Set();
+            fireInput.value = "";
+            fireInput.removeAttribute("aria-invalid");
+            document.querySelectorAll('input[name="blocked-stair"]').forEach(input => {
+                input.checked = input.value === "A" || input.value === "B";
+            });
+            setPhase("standby", "Start a drill to see staged alerts, stairwell routing, elevator shutdown, and sprinkler response.");
+            const { states, graph } = buildBuilding([]);
+            const groundRoutes = dijkstra(graph, states, 0);
+            const roofRoutes = dijkstra(graph, states, TOTAL_FLOORS);
+            const routes = Array.from({ length: TOTAL_FLOORS + 1 }, (_, floor) =>
+                getRoute(floor, states, graph, groundRoutes, roofRoutes));
+            renderBuilding(states, routes, groundRoutes, roofRoutes);
+            document.getElementById("notification-list").innerHTML =
+                '<p class="notification-empty">No incident alerts. Start a drill to generate example floor-specific notifications.</p>';
+            setMessage("Interactive model ready");
+            focusFloorInList(TOTAL_FLOORS);
+        }
+
+        function focusFloorInList(floor) {
+            const row = document.getElementById(`floor-row-${floor}`);
+            if (!row) return;
+            const rowOffset = row.getBoundingClientRect().top - floorList.getBoundingClientRect().top;
+            floorList.scrollTop = Math.max(0, floorList.scrollTop + rowOffset - 10);
+        }
+
+        createFloorRows();
+        document.getElementById("run-button").addEventListener("click", runSimulation);
+        document.getElementById("reset-button").addEventListener("click", resetModel);
+        document.querySelectorAll('input[name="blocked-stair"]').forEach(input => {
+            input.addEventListener("change", () => {
+                if (activeFires.size) runSimulation();
+                else document.getElementById("open-stair-count").textContent = `${4 - getUnsafeStairwells().length} / 4 OPEN`;
+            });
+        });
+        fireInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") runSimulation();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+case_id,name,fire_floors,unsafe_stairs
+1,Floor 68 with Stairwells A and B unsafe,68,"A,B"
+2,Floor 68 with all stairwells unsafe,68,"A,B,C,D"
+3,Multiple fires on Floors 35 and 68,"35,68","A,B"
+4,Fire on the roof floor,100,"A,B"
+5,Fire on the ground floor,0,"A,B"
